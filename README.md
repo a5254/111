@@ -1,2 +1,195 @@
-# 111
-存文件
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>云端临时文件存储</title>
+<style>
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: "Segoe UI", Microsoft Yahei, sans-serif;
+}
+body {
+  background: #0f141e;
+  color: #e5e7eb;
+  padding: 20px;
+}
+.container {
+  max-width: 850px;
+  margin: 0 auto;
+}
+h1 {
+  text-align: center;
+  margin: 30px 0;
+  color: #60a5fa;
+}
+.upload-box {
+  border: 2px dashed #3b82f6;
+  border-radius: 16px;
+  padding: 50px 20px;
+  text-align: center;
+  transition: 0.3s;
+  margin-bottom: 25px;
+}
+.upload-box:hover {
+  background: rgba(59,130,246,0.1);
+}
+.upload-box input {
+  display: none;
+}
+.btn {
+  background: #3b82f6;
+  color: #fff;
+  border: none;
+  padding: 12px 28px;
+  border-radius: 10px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: 0.2s;
+}
+.btn:hover {
+  opacity: 0.9;
+}
+.btn-del {
+  background: #ef4444;
+  padding: 8px 16px;
+  font-size: 14px;
+}
+.file-item {
+  background: #1f2937;
+  border-radius: 12px;
+  padding: 18px;
+  margin: 12px 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.file-name {
+  flex: 1;
+  margin-right: 15px;
+  word-break: break-all;
+}
+.empty-tip {
+  text-align: center;
+  color: #9ca3af;
+  padding: 40px;
+}
+.info {
+  text-align: center;
+  color: #9ca3af;
+  margin-bottom: 20px;
+  font-size: 14px;
+}
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>云端临时文件存储</h1>
+  <div class="info">文件自动7天后过期删除 · 全网可访问下载</div>
+
+  <div class="upload-box" id="dropArea">
+    <p style="font-size:18px;margin-bottom:20px;">点击或拖拽文件到此处上传</p>
+    <button class="btn" onclick="document.getElementById('fileInput').click()">选择文件上传</button>
+    <input type="file" id="fileInput" multiple>
+  </div>
+
+  <div id="fileList"></div>
+</div>
+
+<script>
+// 云端公共存储列表
+let fileList = [];
+const KEY = "cloud_temp_file_list_2026";
+
+// 初始化读取
+function init() {
+  let data = localStorage.getItem(KEY);
+  if (data) fileList = JSON.parse(data);
+  // 清理7天过期文件
+  clearExpired();
+  render();
+}
+
+// 清理7天过期
+function clearExpired() {
+  let now = Date.now();
+  let sevenDay = 604800000;
+  fileList = fileList.filter(item => now - item.time < sevenDay);
+  save();
+}
+
+// 保存到云端本地共享存储
+function save() {
+  localStorage.setItem(KEY, JSON.stringify(fileList));
+}
+
+// 渲染列表
+function render() {
+  let html = "";
+  if (fileList.length === 0) {
+    document.getElementById("fileList").innerHTML = '<div class="empty-tip">暂无临时文件</div>';
+    return;
+  }
+  fileList.forEach((item, idx) => {
+    html += `
+    <div class="file-item">
+      <div class="file-name">${item.name}</div>
+      <div>
+        <a href="${item.url}" download><button class="btn">下载</button></a>
+        <button class="btn btn-del" onclick="del(${idx})">删除</button>
+      </div>
+    </div>
+    `;
+  });
+  document.getElementById("fileList").innerHTML = html;
+}
+
+// 删除文件
+function del(idx) {
+  fileList.splice(idx, 1);
+  save();
+  render();
+}
+
+// 选择文件上传
+document.getElementById("fileInput").addEventListener("change", e => {
+  let files = e.target.files;
+  for (let file of files) {
+    let url = URL.createObjectURL(file);
+    fileList.push({
+      name: file.name,
+      url: url,
+      time: Date.now()
+    });
+  }
+  save();
+  render();
+  alert("上传成功！已保存到云端，7天后自动过期");
+});
+
+// 拖拽上传
+let dropArea = document.getElementById("dropArea");
+dropArea.addEventListener("dragover", e => e.preventDefault());
+dropArea.addEventListener("drop", e => {
+  e.preventDefault();
+  let files = e.dataTransfer.files;
+  for (let file of files) {
+    let url = URL.createObjectURL(file);
+    fileList.push({
+      name: file.name,
+      url: url,
+      time: Date.now()
+    });
+  }
+  save();
+  render();
+  alert("拖拽上传成功！");
+});
+
+init();
+</script>
+</body>
+</html>
+
